@@ -12,9 +12,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # ==========================================
+      # 1. Récupération du dépôt GitHub
+      # ==========================================
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          lfs: true
 
+      # ==========================================
+      # 2. Récupération des vrais fichiers LFS
+      # ==========================================
+      - name: Pull Git LFS files
+        run: |
+          git lfs install
+          git lfs pull
+          git lfs checkout
+
+      # ==========================================
+      # 3. Vérification du fichier modèle
+      # ==========================================
+      - name: Check model file
+        run: |
+          ls -lh app/pipeline_retail_gb.joblib
+          file app/pipeline_retail_gb.joblib
+
+      # ==========================================
+      # 4. Déploiement vers Hugging Face
+      # ==========================================
       - name: Deploy to Hugging Face Space
         uses: huggingface/hub-sync@v0.1.0
         with:
