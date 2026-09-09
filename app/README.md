@@ -1,5 +1,5 @@
 ---
-title: Retail 2.0 - Intelligence Territoriale
+title: Retail 2.0 - Intelligence Territoriale - CI/CD
 colorFrom: blue
 colorTo: indigo
 sdk: gradio
