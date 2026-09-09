@@ -1,0 +1,45 @@
+services:
+  airflow:
+    image: apache/airflow:2.10.0
+    container_name: airflow_container
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+      - ./:/opt/airflow/donnees
+    command: standalone
+    environment:
+      - AIRFLOW__WEBSERVER__DEFAULT_USER_PASSWORD=${AIRFLOW_PASSWORD}
+      - AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT=300
+      # 1. Transfert des ids de la base de données à Python/Airflow
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ENGINEER_USER=${DB_ENGINEER_USER}
+      - DB_ENGINEER_PASSWORD=${DB_ENGINEER_PASSWORD}
+      - DB_ANALYST_USER=${DB_ANALYST_USER}
+      - DB_ANALYST_PASSWORD=${DB_ANALYST_PASSWORD}
+
+      # 2. Configuration SMTP Outlook Ynov pour les e-mails
+      - AIRFLOW__SMTP__SMTP_HOST=smtp.office365.com
+      - AIRFLOW__SMTP__SMTP_PORT=587
+      - AIRFLOW__SMTP__SMTP_USER=${YNOV_EMAIL}
+      - AIRFLOW__SMTP__SMTP_PASSWORD=${YNOV_PASSWORD}
+      - AIRFLOW__SMTP__SMTP_MAIL_FROM=${YNOV_EMAIL}
+      # Installation de jupyer et nbconvert pour l'exécution des notebooks
+      - _PIP_ADDITIONAL_REQUIREMENTS=jupyter nbconvert
+
+  postgres-gis:
+    image: postgis/postgis:15-3.3
+    container_name: postgis_container
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=retail_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

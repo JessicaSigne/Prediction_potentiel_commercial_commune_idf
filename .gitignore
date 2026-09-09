@@ -1,0 +1,48 @@
+# ===========================
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ===========================
+# Virtual environments
+venv/
+.venv/
+env/
+
+# ===========================
+# Environment variables
+.env
+
+# ===========================
+# Jupyter
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# ===========================
+# Airflow
+logs/
+airflow.db
+airflow-webserver.pid
+
+# ===========================
+# VS Code
+.vscode/
+
+# ===========================
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# ===========================
+# TeamWox
+.twbr
+
+
+# ===========================
+# Fichiers Excel
+*.xlsx
+*.xls
+*.csv
+*.pkl
+*.joblib
