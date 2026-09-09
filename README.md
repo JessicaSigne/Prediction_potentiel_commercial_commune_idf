@@ -1,471 +1,911 @@
-# BLOC 1 : Projet Data Engineering - Plateforme d'aide à l'implantation Retail en Île-de-France
+# BLOC 5 : Projet Machine Learning - Plateforme prédictive d'aide à l'implantation Retail en Île-de-France
 
 ## Présentation du projet
 
-Ce projet a été réalisé dans le cadre du Bloc de compétences **« Collecter, Transformer et Sécuriser des Données »**.
+Ce projet constitue le volet **Machine Learning** de la plateforme d'aide à l'implantation Retail en Île-de-France développée dans le cadre du titre **Ingénieur en Science des Données – spécialisation Data et IA**.
 
-L'objectif est de concevoir une chaîne de traitement de données entièrement automatisée permettant de collecter, transformer, stocker et sécuriser des données territoriales afin d'aider à l'identification des zones les plus attractives pour l'ouverture d'un commerce de prêt-à-porter en Île-de-France.
+Après la collecte, la transformation et la valorisation des données territoriales réalisées dans les blocs précédents, l'objectif de ce bloc est de développer un **modèle prédictif capable d'estimer la dynamique commerciale future des communes franciliennes**.
 
-L'ensemble du pipeline est orchestré avec **Apache Airflow**, les données sont stockées dans **PostgreSQL/PostGIS**, puis mises à disposition des Data Analysts et Data Scientists.
+Le projet vise ainsi à passer d'une analyse descriptive des territoires à une approche **prédictive et décisionnelle**, permettant d'identifier les communes présentant le meilleur potentiel pour l'implantation d'un nouveau commerce de prêt-à-porter.
+
+La démarche repose sur :
+
+* l'exploitation des données historiques des communes ;
+* la création de variables explicatives territoriales ;
+* la construction d'une variable cible liée à la dynamique commerciale ;
+* l'analyse statistique des variables ;
+* le traitement des valeurs manquantes et des valeurs atypiques ;
+* l'entraînement et l'optimisation d'un modèle de Machine Learning ;
+* l'évaluation des performances du modèle ;
+* l'estimation de la dynamique commerciale future ;
+* la construction d'un score d'opportunité ;
+* le classement des communes ;
+* la mise à disposition des résultats dans une application interactive ;
+* le suivi des performances du modèle dans le temps ;
+* la mise en place d'un cycle de réentraînement.
 
 ---
 
 # Problématique
 
-L'ouverture d'un nouveau point de vente représente un investissement important.
+L'analyse descriptive permet d'identifier les caractéristiques actuelles d'une commune, mais elle ne permet pas nécessairement d'anticiper son évolution commerciale.
 
-Le choix d'un mauvais emplacement peut entraîner :
+Une commune peut par exemple présenter :
 
-- une faible fréquentation ;
-- une concurrence trop importante ;
-- une inadéquation avec la population locale ;
-- un chiffre d'affaires insuffisant.
+* une population importante ;
+* un niveau de vie élevé ;
+* une forte concentration d'emplois ;
+* une bonne accessibilité ;
+* mais également une concurrence commerciale déjà importante.
 
-L'objectif de ce projet est donc de répondre à la problématique suivante :
+À l'inverse, certaines communes peuvent présenter une évolution démographique et économique favorable tout en étant relativement peu équipées en commerces.
 
-> Comment exploiter des données démographiques, socio-économiques, territoriales et concurrentielles afin d'identifier les zones les plus attractives pour l'implantation d'un nouveau commerce en Île-de-France ?
+L'enjeu est donc d'identifier les territoires présentant un **potentiel commercial futur**, et non uniquement ceux qui sont actuellement les plus attractifs.
+
+La problématique retenue est ainsi :
+
+> **Comment exploiter les caractéristiques démographiques, économiques, sociales, territoriales et commerciales historiques afin de prédire la dynamique commerciale future des communes et d'identifier les territoires présentant le meilleur potentiel d'implantation ?**
 
 ---
 
 # Objectifs
 
-Le pipeline développé permet de :
+Le projet a pour objectifs de :
 
-- automatiser la collecte de données ;
-- centraliser plusieurs sources Open Data ;
-- nettoyer et transformer les données ;
-- construire une base PostgreSQL cohérente ;
-- mettre les données à disposition des équipes Data ;
-- garantir la sécurité et l'intégrité des données.
+* construire une base de données communale exploitable pour le Machine Learning ;
+* exploiter les données historiques disponibles ;
+* identifier les variables explicatives pertinentes de la dynamique commerciale ;
+* construire une variable cible permettant de mesurer l'évolution commerciale ;
+* analyser les relations entre les variables explicatives et la cible ;
+* traiter les valeurs manquantes ;
+* identifier et traiter les valeurs atypiques ;
+* entraîner plusieurs modèles de régression ;
+* sélectionner et optimiser le modèle le plus performant ;
+* prédire la dynamique commerciale future ;
+* construire un indicateur de potentiel commercial ;
+* classer les communes selon leur potentiel ;
+* mettre les résultats à disposition via une application interactive ;
+* suivre les performances du modèle après son déploiement ;
+* prévoir un mécanisme de réentraînement lorsque de nouvelles données deviennent disponibles.
 
 ---
 
-# Structure du projet
+# Architecture du projet
 
-Le projet est organisé selon une architecture modulaire afin de séparer les différentes étapes du pipeline ETL.
+L'ensemble du projet repose sur une chaîne de traitement allant des données territoriales historiques jusqu'à la recommandation des communes.
 
 ```text
-automation/
-│
-├── dags/
-│   ├── dag_retail_idf.py              # Définition du pipeline Airflow
-│   └── __pycache__/                   # Fichiers compilés Python (ignorés par Git)
-│
-├── plugins/                           # Extensions Airflow
-│   ├── .gitkeep 
-|
-├── collecte_donnees.ipynb             # Extraction des données (API, Open Data)
-├── stockage_intermediaire_donnees.ipynb   # Nettoyage et stockage des données brutes                                 
-├── transformation_stockage_final.ipynb  # Transformation et chargement PostgreSQL
-│                                     
-├── docker-compose.yaml                # Déploiement des services Docker
-├── requirements.txt                   # Dépendances Python
-├── README.md                          # Documentation du projet
-└── .env                               # Variables d'environnement (non versionné)
+Données territoriales historiques
+              │
+              ▼
+     Préparation des données
+              │
+              ▼
+    Analyse exploratoire / EDA
+              │
+              ▼
+   Création des variables explicatives
+              │
+              ▼
+      Création de la variable cible
+              │
+              ▼
+      Analyse statistique
+              │
+              ▼
+  Traitement des valeurs manquantes
+              │
+              ▼
+      Traitement des outliers
+              │
+              ▼
+    Séparation Train / Test
+              │
+              ▼
+       Entraînement modèle
+              │
+              ▼
+    Optimisation des hyperparamètres
+              │
+              ▼
+       Validation du modèle
+              │
+              ▼
+     Prédiction dynamique A+1
+              │
+              ▼
+      Score d'opportunité
+              │
+              ▼
+   Classement des communes
+              │
+              ▼
+      Application Streamlit
+              │
+              ▼
+       Monitoring modèle
+              │
+              ▼
+       Nouvelles données ?
+          ↙          ↘
+        NON          OUI
+         │            │
+        STOP     Réentraînement
 ```
 
-### Description des principaux composants
+---
 
-| Élément | Description |
-|----------|-------------|
-| `collecte_donnees.ipynb` | Extraction automatisée des données depuis les API et les sources Open Data. |
-| `stockage_intermédiaire_donnees.ipynb` | Nettoyage, validation et stockage des données intermédiaires. |
-| `transformation_stockage_final.ipynb` | Transformation des jeux de données et chargement des tables finales dans PostgreSQL. |
-| `dag_retail_idf.py` | Orchestration complète du pipeline avec Apache Airflow. |
-| `docker-compose.yaml` | Déploiement des conteneurs nécessaires au fonctionnement de la plateforme. |
-| `requirements.txt` | Liste des bibliothèques Python nécessaires à l'exécution du projet. |
+# Données utilisées
 
+Les données utilisées proviennent principalement de données territoriales publiques, notamment issues de l'INSEE et des données précédemment consolidées dans PostgreSQL/PostGIS.
 
+L'unité d'analyse retenue est la **commune francilienne**, identifiée par son **code INSEE**.
 
-# Architecture technique
+Les données historiques disponibles couvrent notamment plusieurs millésimes tels que :
 
-Le projet repose sur une architecture Data Engineering composée des briques suivantes :
+* 2017 ;
+* 2023 ;
+* 2024 ;
+* 2025.
 
-- API INSEE (MELoDI)
-- Open Data (data.gouv.fr)
-- OpenStreetMap
-- Scripts Python
-- Apache Airflow
-- Docker
-- PostgreSQL / PostGIS
-- Pandas
-- SQLAlchemy
-- DBeaver
+Une attention particulière a été portée à la disponibilité temporelle des variables afin d'éviter d'utiliser des informations ne correspondant pas à l'année de référence.
 
-Les traitements sont entièrement automatisés via un DAG Airflow exécuté selon une planification hebdomadaire.
+Les données sont organisées autour de plusieurs domaines :
+
+* démographie ;
+* population ;
+* logements ;
+* revenus ;
+* emploi ;
+* établissements ;
+* commerces ;
+* équipements ;
+* mobilité ;
+* caractéristiques territoriales.
 
 ---
 
-# Sources de données
+# Préparation des données
 
-Les données proviennent exclusivement de sources publiques.
+Avant l'entraînement des modèles, plusieurs étapes de préparation ont été réalisées.
 
-| Source | Type | Utilisation |
-|--------|------|-------------|
-| API INSEE MELoDI | API REST | Population, revenus, logements, équipements, emploi |
-| Data.gouv.fr | API / Open Data | Données de mobilité et infrastructures |
-| OpenStreetMap | API | Géolocalisation |
-| Web Scraping | Python | Données concurrentielles (respect des CGU) |
+## Harmonisation temporelle
 
----
+Les données provenant de différentes sources ne sont pas nécessairement disponibles pour les mêmes années.
 
-# Jeux de données exploités
+Une étape de contrôle permet donc d'associer chaque valeur à son année réelle de référence.
 
-Les principaux jeux de données INSEE utilisés sont :
+Les variables temporelles ont été contrôlées afin d'éviter :
 
-- DS_RP_POPULATION_PRINC
-- DS_RP_LOGEMENT_PRINC
-- DS_FILOSOFI_CC
-- DS_BPE
-- DS_FLORES_ECONOMIC_SPHERE
-- DS_POPULATIONS_REFERENCE
-
-Chaque jeu de données est transformé afin d'obtenir une structure tabulaire directement exploitable par les équipes Data.
+* les associations incorrectes entre une valeur et une année ;
+* les doublons temporels ;
+* l'utilisation d'une donnée provenant d'une année différente de celle attendue.
 
 ---
 
-# Pipeline ETL
+## Identification des valeurs manquantes
 
-Le pipeline suit une architecture ETL classique.
+Une analyse de la complétude des données a été réalisée avant toute imputation.
 
-## Extraction
+Les variables ont été étudiées afin de distinguer :
 
-Les données sont collectées :
+* les valeurs réellement nulles ;
+* les valeurs manquantes pouvant être remplacées ;
+* les variables présentant trop peu d'informations ;
+* les variables pour lesquelles une imputation aurait introduit un biais.
 
-- via des API REST ;
-- via des requêtes SQL ;
-- via des scripts de Web Scraping ;
-- via des jeux Open Data.
-
-## Transformation
-
-Les traitements réalisés comprennent notamment :
-
-- nettoyage des données ;
-- suppression des doublons ;
-- renommage des variables ;
-- transformation des codes INSEE en variables métiers ;
-- agrégation ;
-- pivot des tables ;
-- harmonisation des types de données ;
-- contrôle qualité.
-
-Toutes les transformations sont réalisées avec **Pandas**.
-
-## Chargement
-
-Les données transformées sont injectées dans PostgreSQL via SQLAlchemy.
-
-Les tables finales sont organisées par domaine métier :
-
-- population ;
-- logements ;
-- revenus ;
-- équipements ;
-- emploi ;
-- mobilité.
+L'imputation n'est donc pas appliquée automatiquement à toutes les variables.
 
 ---
 
-# Orchestration
+## Traitement des valeurs atypiques
 
-L'ensemble du pipeline est orchestré avec Apache Airflow.
+Certaines variables territoriales présentent des distributions fortement asymétriques, notamment en raison de la présence de communes très particulières comme Paris.
 
-Le DAG réalise automatiquement les étapes suivantes :
+Les distributions ont été étudiées graphiquement afin d'identifier les observations atypiques.
 
-1. Extraction des données.
-2. Stockage des données brutes.
-3. Transformation.
-4. Chargement PostgreSQL.
-5. Nettoyage des fichiers temporaires.
+Le traitement des outliers est réalisé en tenant compte de la nature de la variable et de la réalité territoriale.
 
-Chaque tâche est journalisée.
+L'objectif n'est pas de supprimer automatiquement les valeurs extrêmes, mais de distinguer :
 
-En cas d'échec :
-
-- le DAG est interrompu ;
-- les logs sont conservés ;
-- une notification est envoyée automatiquement par e-mail.
-
-En cas de succès :
-
-- une notification par mail confirme le bon déroulement du pipeline.
+* les véritables erreurs ou anomalies ;
+* les valeurs extrêmes mais cohérentes avec la réalité ;
+* les communes présentant naturellement des caractéristiques très différentes du reste du territoire.
 
 ---
 
-# Modèle de données
+# Création de la variable cible
 
-La base PostgreSQL est organisée selon une approche relationnelle.
+Le modèle principal repose sur une approche de **régression de la dynamique commerciale**.
 
-Les tables utilisent :
+L'objectif est de prédire l'évolution future du nombre de commerces à partir des caractéristiques historiques d'une commune.
 
-- Primary Keys
-- Foreign Keys
-- contraintes NOT NULL
-- contraintes CHECK
-- contraintes UNIQUE
+La variable cible représente donc la **dynamique commerciale future**, calculée à partir de l'évolution du nombre de commerces entre différentes périodes.
 
-Les variables sont normalisées afin de faciliter les jointures entre les différentes tables.
+Cette approche permet de ne pas simplement prédire le niveau commercial d'une commune, mais de mesurer sa capacité à évoluer dans le temps.
 
----
+```text
+Historique commercial
+        +
+Données territoriales
+        │
+        ▼
+Dynamique commerciale future
+        │
+        ▼
+Variable cible
+```
 
-# Politique de sécurité
-
-Une politique de sécurité a été définie afin de garantir :
-
-- la confidentialité ;
-- l'intégrité ;
-- la disponibilité des données.
-
-Les principales mesures mises en œuvre sont :
-
-- authentification PostgreSQL ;
-- séparation des rôles ;
-- accès en lecture seule pour les analystes ;
-- accès en écriture réservé au Data Engineer ;
-- sauvegardes régulières ;
-- chiffrement du volume de stockage ;
-- Chiffrement des mots de passe dans un fichier .env;
-- communication sécurisée via TLS.
-
-Les données exploitées étant issues de l'Open Data, aucune donnée personnelle n'est traitée.
-
-Le projet respecte ainsi les principes du RGPD.
+L'utilisation de données historiques permet ainsi au modèle d'apprendre les caractéristiques associées aux communes dont l'activité commerciale évolue favorablement.
 
 ---
 
-# Gestion des rôles
+# Variables explicatives
 
-Deux profils PostgreSQL ont été créés.
+Les variables explicatives regroupent plusieurs dimensions territoriales.
 
-## Data Engineer
+## Démographie
 
-Autorisations :
+* population totale ;
+* évolution de la population ;
+* répartition par tranche d'âge ;
+* structure démographique ;
+* indicateurs d'évolution démographique.
 
-- CREATE
-- INSERT
-- UPDATE
-- DELETE
-- ALTER
-- DROP
+## Activité économique
 
-Responsabilités :
+* nombre d'établissements ;
+* nombre d'entreprises ;
+* emplois ;
+* emplois pour 1 000 habitants ;
+* évolution de l'activité économique.
 
-- alimentation de la base ;
-- maintenance du pipeline ;
-- exécution des traitements ETL.
+## Commerce
 
-## Data Analyst / Data Scientist
+* nombre de commerces ;
+* densité commerciale ;
+* commerces pour 1 000 habitants ;
+* évolution du nombre de commerces ;
+* diversité commerciale ;
+* indicateurs de concurrence.
 
-Autorisations :
+## Pouvoir d'achat
 
-- SELECT uniquement sur les tables finales.
+* niveau de vie médian ;
+* taux de pauvreté ;
+* rapport interdécile D9/D1 ;
+* indice de Gini.
 
-Responsabilités :
+## Logement
 
-- analyses exploratoires ;
-- visualisation ;
-- modélisation.
+* nombre de logements ;
+* évolution du parc de logements ;
+* structure des logements ;
+* logements selon leur taille.
 
-La séparation des rôles garantit la protection des données contre les modifications accidentelles.
+## Équipements et accessibilité
+
+* équipements de santé ;
+* équipements sportifs ;
+* infrastructures de transport ;
+* services et équipements disponibles dans la commune.
 
 ---
 
-# Continuité de service
+# Analyse exploratoire
 
-Afin d'assurer la disponibilité de la plateforme :
+Une analyse exploratoire approfondie a été réalisée avant la phase de modélisation.
 
-- les traitements sont conteneurisés avec Docker ;
-- les bases sont sauvegardées régulièrement ;
-- les scripts sont versionnés avec Git ;
-- le pipeline peut être relancé automatiquement via Airflow.
+Elle comprend notamment :
 
-Cette organisation garantit la reproductibilité complète de l'environnement.
+* analyse des distributions ;
+* analyse des valeurs manquantes ;
+* analyse des valeurs atypiques ;
+* statistiques descriptives ;
+* analyse des corrélations ;
+* visualisation des relations entre variables ;
+* analyse de la distribution de la variable cible.
+
+Cette étape permet de mieux comprendre la structure des données et d'identifier les variables susceptibles d'être pertinentes pour la prédiction.
+
+---
+
+# Analyse statistique
+
+Plusieurs méthodes statistiques ont été utilisées afin d'évaluer les relations entre les variables.
+
+## Corrélations de Spearman
+
+La corrélation de Spearman a été utilisée pour mesurer les relations monotones entre les variables explicatives et la variable cible.
+
+Cette méthode est particulièrement adaptée aux données territoriales pouvant présenter :
+
+* des distributions non normales ;
+* des relations non linéaires ;
+* des valeurs extrêmes.
+
+Une matrice de corrélation a été produite afin d'identifier les variables présentant les associations les plus importantes.
+
+---
+
+## Tests statistiques
+
+Des tests statistiques ont également été utilisés afin de compléter l'analyse exploratoire.
+
+Les analyses comprennent notamment :
+
+* tests de corrélation de Spearman ;
+* tests de significativité ;
+* analyse des p-values ;
+* F-test de régression.
+
+Ces analyses permettent de distinguer les relations observées dans l'échantillon des relations statistiquement significatives.
+
+---
+
+# Sélection des variables
+
+L'analyse des variables a permis d'identifier :
+
+* les variables fortement corrélées entre elles ;
+* les variables présentant une relation avec la cible ;
+* les variables peu informatives ;
+* les variables susceptibles d'introduire de la redondance.
+
+Une analyse de l'importance des variables a également été réalisée après entraînement du modèle.
+
+L'objectif est de conserver un ensemble de variables suffisamment informatif tout en limitant :
+
+* la redondance ;
+* le bruit ;
+* la complexité inutile du modèle.
+
+---
+
+# Modélisation
+
+Le problème est traité comme un problème de **régression supervisée**.
+
+Le principe général est :
+
+```text
+Variables territoriales historiques
+                │
+                ▼
+       Modèle de régression
+                │
+                ▼
+Dynamique commerciale prédite
+                │
+                ▼
+      Potentiel commercial
+```
+
+Plusieurs approches de Machine Learning peuvent être comparées afin de sélectionner le modèle offrant le meilleur compromis entre :
+
+* performance ;
+* robustesse ;
+* capacité de généralisation ;
+* interprétabilité ;
+* complexité.
+
+Le modèle principal retenu repose sur un **Gradient Boosting Regressor**, particulièrement adapté à la modélisation de relations non linéaires entre les caractéristiques territoriales et la dynamique commerciale.
+
+---
+
+# Gradient Boosting
+
+Le Gradient Boosting est une méthode d'ensemble reposant sur la construction successive de modèles faibles, généralement des arbres de décision.
+
+Chaque nouvel arbre cherche à corriger les erreurs réalisées par les modèles précédents.
+
+Dans le cadre du projet, cette méthode permet notamment de prendre en compte :
+
+* les relations non linéaires ;
+* les interactions entre variables ;
+* les différences importantes entre communes ;
+* la complexité des facteurs influençant la dynamique commerciale.
+
+---
+
+# Séparation des données
+
+Les données sont séparées en plusieurs ensembles afin d'évaluer correctement la capacité de généralisation du modèle.
+
+```text
+Dataset
+   │
+   ├── Données d'entraînement
+   │
+   └── Données de test
+```
+
+Les étapes de préparation nécessaires sont réalisées de manière à éviter toute fuite d'information entre les données d'entraînement et les données de test.
+
+Le modèle est ensuite entraîné uniquement sur les données d'entraînement avant d'être évalué sur des données non utilisées lors de l'apprentissage.
+
+---
+
+# Optimisation du modèle
+
+Les hyperparamètres du modèle sont optimisés afin d'améliorer ses performances.
+
+Cette étape permet notamment de rechercher les paramètres permettant d'obtenir un modèle suffisamment performant tout en limitant le surapprentissage.
+
+Les performances sont comparées sur les données d'entraînement et de test afin de vérifier la capacité de généralisation du modèle.
+
+---
+
+# Évaluation du modèle
+
+Le modèle est évalué à l'aide de métriques adaptées à un problème de régression.
+
+Les métriques étudiées comprennent notamment :
+
+* **R²** ;
+* **MAE – Mean Absolute Error** ;
+* **MSE – Mean Squared Error** ;
+* **RMSE – Root Mean Squared Error**.
+
+L'analyse des performances ne repose pas uniquement sur une métrique unique.
+
+Une attention particulière est portée à l'écart entre les performances d'entraînement et celles obtenues sur les données de test afin d'identifier un éventuel surapprentissage.
+
+---
+
+# Prédiction de la dynamique commerciale
+
+Une fois le modèle validé, celui-ci est utilisé pour estimer la dynamique commerciale future des communes.
+
+Le principe est :
+
+```text
+Données historiques d'une commune
+              │
+              ▼
+        Modèle ML
+              │
+              ▼
+Dynamique commerciale estimée
+              │
+              ▼
+     Potentiel commercial
+```
+
+Cette prédiction constitue la première étape de la construction du système de recommandation territoriale.
+
+---
+
+# Score d'opportunité commerciale
+
+La prédiction de la dynamique commerciale est ensuite transformée en un **score d'opportunité** permettant de faciliter l'interprétation des résultats.
+
+L'objectif est de ne pas uniquement fournir une prédiction numérique, mais de transformer celle-ci en information exploitable par un décideur.
+
+Le score permet notamment de :
+
+* comparer les communes ;
+* identifier les territoires présentant un potentiel élevé ;
+* prioriser les zones à analyser ;
+* faciliter la prise de décision.
+
+---
+
+# Analyse du niveau d'équipement commercial
+
+Le potentiel commercial ne dépend pas uniquement de la croissance prédite.
+
+Une commune présentant une croissance commerciale importante peut également être déjà fortement équipée.
+
+Le projet intègre donc une comparaison entre :
+
+* le niveau commercial observé ;
+* le niveau commercial attendu compte tenu des caractéristiques du territoire.
+
+Cette approche permet d'identifier les communes présentant un **déséquilibre entre leur potentiel territorial et leur niveau d'équipement commercial**.
+
+Les communes peuvent ainsi être catégorisées selon leur situation :
+
+```text
+Potentiel commercial élevé
+          +
+Sous-équipement commercial
+          │
+          ▼
+    OPPORTUNITÉ ÉLEVÉE
+```
+
+À l'inverse :
+
+```text
+Potentiel commercial faible
+          +
+Forte présence commerciale
+          │
+          ▼
+       SATURATION
+```
+
+L'écart est exprimé sous forme relative afin d'éviter une règle fixe applicable de manière identique à toutes les communes.
+
+---
+
+# Classement des communes
+
+Les communes sont classées en fonction de leur potentiel commercial.
+
+Le processus permet d'obtenir :
+
+* une estimation de la dynamique commerciale ;
+* un score d'opportunité ;
+* un niveau d'équipement ;
+* une catégorie territoriale ;
+* un classement des communes prioritaires.
+
+L'objectif final est de fournir une aide à la décision permettant d'identifier les territoires présentant le meilleur compromis entre :
+
+* attractivité territoriale ;
+* dynamique commerciale ;
+* pouvoir d'achat ;
+* population ;
+* activité économique ;
+* concurrence ;
+* niveau d'équipement commercial.
+
+---
+
+# Application interactive
+
+Les résultats du modèle sont mis à disposition via une interface interactive.
+
+Deux environnements de restitution ont été envisagés/développés :
+
+* une application **Streamlit** ;
+* une application déployée sur **Hugging Face Spaces**.
+
+L'application permet notamment de consulter les informations relatives aux communes et d'explorer leur potentiel commercial.
+
+Les utilisateurs peuvent visualiser :
+
+* les indicateurs territoriaux ;
+* les prédictions du modèle ;
+* le potentiel commercial ;
+* le niveau d'équipement ;
+* la classification de la commune ;
+* les informations permettant de comparer plusieurs territoires.
+
+---
+
+# Monitoring du modèle
+
+Une étape de monitoring a été mise en place afin de suivre les performances du modèle après son entraînement.
+
+Les métriques obtenues lors des différents entraînements sont conservées afin de pouvoir comparer les performances au cours du temps.
+
+Le monitoring permet notamment de suivre :
+
+* les performances du modèle ;
+* les erreurs de prédiction ;
+* l'évolution des métriques ;
+* les performances par période ;
+* les écarts entre les valeurs prédites et observées.
+
+Les résultats sont organisés par période afin de permettre un suivi longitudinal du modèle.
+
+---
+
+# Cycle de réentraînement
+
+Le modèle est conçu selon une logique de Machine Learning évolutive.
+
+Lorsque de nouvelles données deviennent disponibles, un nouveau cycle peut être déclenché.
+
+```text
+Nouvelles données
+       ↓
+Construction du nouveau cycle
+       ↓
+Réentraînement
+       ↓
+Validation
+       ↓
+Comparaison des performances
+       ↓
+Déploiement
+       ↓
+Prédictions A+1
+       ↓
+Fichier de monitoring
+       ↓
+Évaluation du modèle
+       ↓
+Nouvelles données ?
+    ↙          ↘
+  NON          OUI
+   ↓            ↓
+ STOP      Réentraînement
+```
+
+Cette architecture permet d'éviter qu'un modèle soit utilisé indéfiniment sans être réévalué.
+
+Les performances du nouveau modèle peuvent être comparées à celles du modèle précédent avant sa mise en production.
+
+---
+
+# Monitoring des prédictions
+
+En plus du suivi des métriques du modèle, les prédictions sont comparées aux valeurs réellement observées lorsque celles-ci deviennent disponibles.
+
+Cela permet de calculer les écarts entre :
+
+```text
+Valeur observée
+       -
+Valeur prédite
+       =
+Erreur de prédiction
+```
+
+Le suivi de ces erreurs permet d'identifier une éventuelle dégradation des performances du modèle au fil du temps.
+
+Cette démarche contribue à la mise en place d'un processus de **Machine Learning industrialisé et maintenable**.
 
 ---
 
 # Technologies utilisées
 
-| Domaine | Technologies |
-|----------|--------------|
-| Langage | Python |
-| Base de données | PostgreSQL / PostGIS |
-| Orchestration | Apache Airflow |
-| Conteneurisation | Docker |
-| Analyse | Pandas |
-| Requêtes SQL | SQLAlchemy |
-| IDE | VS Code |
-| Administration BDD | DBeaver |
-| Versionning | Git |
+| Domaine                  | Technologies               |
+| ------------------------ | -------------------------- |
+| Langage                  | Python                     |
+| Manipulation des données | Pandas                     |
+| Calcul scientifique      | NumPy                      |
+| Machine Learning         | Scikit-learn               |
+| Modèle principal         | Gradient Boosting          |
+| Analyse statistique      | SciPy                      |
+| Visualisation            | Matplotlib                 |
+| Base de données          | PostgreSQL / PostGIS       |
+| Accès aux données        | SQLAlchemy                 |
+| Application              | Streamlit                  |
+| Déploiement              | Hugging Face Spaces        |
+| Versionning              | Git / GitHub               |
+| Environnement            | Jupyter Notebook / VS Code |
+
+---
+
+# Organisation du projet
+
+```text
+bloc5/
+│
+├── notebooks/
+│   └── analyse_modelisation.ipynb
+│
+├── app/
+│   └── streamlit_app.py
+│
+├── model/
+│   └── modèle entraîné
+│
+├── monitoring/
+│   └── métriques et résultats de suivi
+│
+├── data/
+│   └── données préparées
+│
+├── requirements.txt
+│
+├── README.md
+│
+└── .gitignore
+```
+
+---
+
+# Workflow Machine Learning
+
+Le workflow complet du projet peut être résumé ainsi :
+
+```text
+1. Collecte des données
+        ↓
+2. Consolidation des données territoriales
+        ↓
+3. Analyse de la qualité des données
+        ↓
+4. Traitement des valeurs manquantes
+        ↓
+5. Traitement des valeurs atypiques
+        ↓
+6. Création des variables explicatives
+        ↓
+7. Création de la cible
+        ↓
+8. Analyse statistique
+        ↓
+9. Séparation Train / Test
+        ↓
+10. Entraînement des modèles
+        ↓
+11. Optimisation
+        ↓
+12. Évaluation
+        ↓
+13. Sélection du modèle
+        ↓
+14. Prédiction A+1
+        ↓
+15. Score d'opportunité
+        ↓
+16. Classement des communes
+        ↓
+17. Restitution dans l'application
+        ↓
+18. Monitoring
+        ↓
+19. Réentraînement lorsque nécessaire
+```
 
 ---
 
 # Résultats obtenus
 
-Le pipeline permet :
+Le projet permet de passer d'une approche descriptive des territoires à une approche prédictive.
 
-- la collecte automatisée des données ;
-- leur transformation en tables métier ;
-- leur chargement dans PostgreSQL ;
-- leur mise à disposition des équipes Data ;
-- une exécution planifiée et supervisée via Airflow.
+Les principaux résultats sont :
 
-L'ensemble du processus est reproductible, sécurisé et industrialisable.
+* construction d'une base de données communale exploitable par des modèles de Machine Learning ;
+* création d'une variable cible représentant la dynamique commerciale ;
+* identification des variables explicatives pertinentes ;
+* analyse statistique des relations entre les variables ;
+* développement d'un modèle de régression ;
+* optimisation du modèle de Gradient Boosting ;
+* prédiction de la dynamique commerciale future ;
+* création d'un score d'opportunité ;
+* classification des communes selon leur niveau de potentiel ;
+* identification des territoires potentiellement sous-équipés ;
+* identification des territoires potentiellement saturés ;
+* mise à disposition des résultats via une application interactive ;
+* mise en place d'un système de monitoring ;
+* définition d'un cycle de réentraînement.
+
+---
+
+# Valeur métier
+
+Le modèle développé permet d'apporter une réponse plus opérationnelle à la problématique d'implantation commerciale.
+
+Plutôt que de sélectionner une commune uniquement selon son nombre actuel d'habitants ou son niveau de vie, l'approche combine plusieurs dimensions du territoire afin d'estimer son évolution commerciale.
+
+Le système permet ainsi de répondre à plusieurs questions :
+
+* Quelles communes présentent une dynamique commerciale favorable ?
+* Quelles communes semblent sous-équipées par rapport à leur potentiel ?
+* Quels territoires présentent un risque de saturation ?
+* Quelles communes doivent être étudiées prioritairement pour une nouvelle implantation ?
+* Comment l'attractivité commerciale d'un territoire peut-elle évoluer dans le temps ?
+
+---
+
+# Limites
+
+Le modèle reste dépendant de la qualité et de la disponibilité des données historiques.
+
+Certaines communes présentent des données incomplètes ou disponibles uniquement pour certains millésimes.
+
+Par ailleurs, la dynamique commerciale peut être influencée par des facteurs difficiles à mesurer dans les données disponibles, tels que :
+
+* les projets immobiliers futurs ;
+* les changements d'infrastructures ;
+* l'arrivée ou le départ d'enseignes ;
+* les évolutions réglementaires ;
+* les comportements de consommation ;
+* les événements économiques locaux.
+
+Les résultats doivent donc être considérés comme un **outil d'aide à la décision** et non comme une décision automatique d'implantation.
 
 ---
 
 # Perspectives
 
-Les données produites pourront être utilisées pour :
+Plusieurs évolutions peuvent être envisagées :
 
-- construire un score d'attractivité commerciale ;
-- développer des modèles de Machine Learning ;
-- recommander les meilleures communes d'implantation ;
-- alimenter un tableau de bord décisionnel.
-
----
-
-
-Projet réalisé dans le cadre du Bloc 1 du titre RNCP : **Ingénieur en Science des Données – spécialisation Data et IA**
-
-Année universitaire : 2025–2026
-
-
-
-
-
-# BLOC 2 : Projet Data Analyst - Plateforme d'aide à l'implantation Retail en Île-de-France
-
-![Python](https://img.shields.io/badge/Python-3.12-blue)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
-![PostGIS](https://img.shields.io/badge/PostGIS-Enabled-green)
-![Tableau Public](https://img.shields.io/badge/Tableau_Public-Visualization-E97627)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
-
-
-## Objectif
-
-Ce second bloc du projet prolonge le travail réalisé lors du Bloc 1, consacré à la collecte, au nettoyage et à la structuration des données Open Data.
-
-L'objectif est de transformer les données consolidées en indicateurs d'aide à la décision afin d'identifier les communes franciliennes présentant un potentiel intéressant pour l'implantation d'un nouveau commerce.
-
-Le projet couvre l'ensemble de la chaîne analytique :
-
-- consolidation des données issues de PostgreSQL ;
-- calcul d'indicateurs métiers avec Python/Pandas ;
-- analyses statistiques ;
-- validation d'hypothèses ;
-- création d'un tableau de bord interactif sous Tableau Public.
+* intégrer davantage de données temporelles ;
+* enrichir les données de mobilité ;
+* intégrer les données de fréquentation ;
+* améliorer la mesure de la concurrence ;
+* intégrer davantage d'informations sur les enseignes ;
+* tester d'autres modèles de Machine Learning ;
+* comparer plusieurs stratégies de scoring ;
+* améliorer l'explicabilité des prédictions ;
+* mettre en place des alertes automatiques sur la dégradation des performances ;
+* automatiser complètement le cycle de réentraînement ;
+* intégrer le modèle dans une architecture MLOps complète ;
+* développer une API permettant d'interroger les prédictions ;
+* améliorer la visualisation cartographique des opportunités.
 
 ---
 
-## Technologies utilisées
+# Chaîne globale de la plateforme
 
-- Python
-- Pandas
-- NumPy
-- SciPy
-- Matplotlib
-- PostgreSQL
-- PostGIS
-- SQLAlchemy
-- Tableau Public
+Les différents blocs du projet s'intègrent dans une architecture globale :
 
----
-
-## Architecture du projet
-
-L'ensemble des analyses se trouvent dans le fichier : `analyse_valorisation_donnees.ipynb`
-
-
-
----
-
-## Indicateurs calculés
-
-Les principaux indicateurs produits sont notamment :
-
-### Démographie
-
-- Population totale
-- Répartition par tranche d'âge
-- Evolution de population
-
-### Activité économique
-
-- Emplois pour 1 000 habitants
-- Etablissements pour 1 000 habitants
-
-### Commerce
-
-- Nombre de commerces
-- Densité commerciale
-- Commerces pour 1 000 habitants
-- Diversité commerciale
-
-### Pouvoir d'achat
-
-- Niveau de vie médian
-- Taux de pauvreté
-- Rapport interdécile D9/D1
-- Indice de Gini
-
-### Equipements
-
-- Services de santé
-- Infrastructures sportives
-- Infrastructures de transport
-- Commerces alimentaires
+```text
+                 SOURCES DE DONNÉES
+                        │
+                        ▼
+              ┌───────────────────┐
+              │      BLOC 1       │
+              │   Data Engineering│
+              └─────────┬─────────┘
+                        │
+                        ▼
+              PostgreSQL / PostGIS
+                        │
+                        ▼
+              ┌───────────────────┐
+              │      BLOC 2       │
+              │    Data Analyst   │
+              └─────────┬─────────┘
+                        │
+                        ▼
+             Indicateurs territoriaux
+                        │
+                        ▼
+              ┌───────────────────┐
+              │      BLOC 5       │
+              │   Machine Learning│
+              └─────────┬─────────┘
+                        │
+                        ▼
+             Prédiction commerciale
+                        │
+                        ▼
+              Score d'opportunité
+                        │
+                        ▼
+              Classement communes
+                        │
+                        ▼
+              Streamlit / Hugging Face
+                        │
+                        ▼
+                 Aide à la décision
+```
 
 ---
 
-## Analyses statistiques
-
-Le projet comporte plusieurs analyses statistiques :
-
-- matrice de corrélation de Spearman ;
-- tests de corrélation de Spearman ;
-- visualisation des distributions ;
-- interprétation des coefficients de corrélation ;
-- validation ou rejet des hypothèses de travail.
-
-Les analyses portent notamment sur :
-
-- la relation entre la population et le nombre de commerces ;
-- le lien entre le niveau de vie médian et la densité commerciale ;
-- l'association entre les infrastructures de transport et les emplois.
-
----
-
-## Dashboard
-
-Le dashboard a été développé avec Tableau Public.
-
-Il permet de visualiser :
-
-- les principaux KPI ;
-- une carte du niveau de vie médian par commune ;
-- les communes les plus peuplées ;
-- les emplois pour 1 000 habitants ;
-- la répartition des commerces par catégorie.
-
-Deux filtres interactifs sont disponibles :
-
-- année de référence ;
-- commune.
-
-
----
-
-## Installation
+# Installation
 
 Créer un environnement virtuel :
 
 ```bash
 python -m venv .venv
+```
 
+Activer l'environnement virtuel sous Windows :
 
-# Auteur : 
-Jessica SIGNE
+```bash
+.venv\Scripts\activate
+```
 
-Lien git : https://github.com/JessicaSigne/data_infrastructure_implantation_retail_idf.git
+Installer les dépendances :
+
+```bash
+pip install -r requirements.txt
+```
+
+Lancer l'application Streamlit :
+
+```bash
+streamlit run app/streamlit_app.py
+```
+
+---
+
+# Auteur
+
+**Jessica SIGNE**
+
+Projet réalisé dans le cadre du **Bloc 5 du titre RNCP : Ingénieur en Science des Données – spécialisation Data et IA**
+
+**Année universitaire : 2025–2026**
